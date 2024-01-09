@@ -1,11 +1,13 @@
 import { View, Text, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import FloatingButton from '../../components/FloatingButton/FloatingButton'
+import FloatingButton from '../../components/FloatingButton'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import styles from './Messages.styles'
-import ContentInputModal from '../../components/modal/ContentInputModal/ContentInputModal'
+import ContentInputModal from '../../components/modal/ContentInputModal'
 import { authInstance, database } from '../../../firebaseConfig'
-import { onValue, ref,set } from "firebase/database";
+import { onValue, push, ref,set } from "firebase/database";
+import parseContentData from '../../utils/parseContentData'
+import MessageCard from '../../card/MessageCard'
 
 
 const Messages = () => {
@@ -15,7 +17,13 @@ const Messages = () => {
   useEffect(() => {
     onValue(ref(database,'messages/'),(snapshot) => {
       const contentdata = snapshot.val();
-      console.log(contentdata)
+      //bos geliyorsa herhangi bir işlem yapma
+      if(!contentdata){
+        return;
+      }
+      const parsedData=parseContentData(contentdata)
+      setContentList(parsedData)
+     
     });
     
    
@@ -43,15 +51,29 @@ const Messages = () => {
       date:new Date().toISOString(),
 
     }
-    set(ref(database,'messages/'),contentObject)
+    const messageRef=ref(database,'messages/')
+    const newMessageRef=push(messageRef)
+    
+    set(newMessageRef,contentObject)
 
   }
+
+  const renderContent=({item})=>{
+    return <MessageCard message={item}/>
+
+  }
+  
 
 
 
   return (
     <SafeAreaView style={styles.container}>
-      <FlatList/>
+      <FlatList
+      data={contentList}
+      renderItem={renderContent}
+    
+      />
+      
 
       <FloatingButton onPress={handleInputToggle}/>
       <ContentInputModal
