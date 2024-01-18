@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import styles from './Messages.styles'
 import ContentInputModal from '../../components/modal/ContentInputModal'
 import { authInstance, database } from '../../../firebaseConfig'
-import { onValue, push, ref,set } from "firebase/database";
+import { get, onValue, push, ref,set, update } from "firebase/database";
 import parseContentData from '../../utils/parseContentData'
 import MessageCard from '../../card/MessageCard'
 
@@ -17,11 +17,10 @@ const Messages = () => {
   useEffect(() => {
     onValue(ref(database,'messages/'),(snapshot) => {
       const contentdata = snapshot.val();
-      //bos geliyorsa herhangi bir işlem yapma
-      if(!contentdata){
-        return;
-      }
-      const parsedData=parseContentData(contentdata)
+
+      //null yakalarsa bos obj göndericek {}
+    
+      const parsedData=parseContentData(contentdata || {}  )
       setContentList(parsedData)
      
     });
@@ -49,6 +48,7 @@ const Messages = () => {
       text:content,
       username:userMail.split('@')[0],
       date:new Date().toISOString(),
+      dislike:0,
 
     }
     const messageRef=ref(database,'messages/')
@@ -58,12 +58,26 @@ const Messages = () => {
 
   }
 
+  function handleBanane(item){
+    const dislikeRef = ref(database, `messages/${item.id}`);
+    get(dislikeRef).then((snapshot) => {
+      const currentData = snapshot.val();
+      const currentDislikes = currentData.dislike || 0;
+      // Update the dislikes count
+      update(dislikeRef, { dislike: currentDislikes + 1 });
+    }).catch((error) => {
+      // Handle any errors that occur during the process
+      console.error("Error updating dislikes:", error);
+    });
+
+
+  }
+
   const renderContent=({item})=>{
-    return <MessageCard message={item}/>
+    return <MessageCard message={item} onBanane={()=>handleBanane(item)}/>
 
   }
   
-
 
 
   return (
